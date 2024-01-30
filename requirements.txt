@@ -1,0 +1,5 @@
+docx2txt
+llama-index
+openai
+pypdf
+streamlit
