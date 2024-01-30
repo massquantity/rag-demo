@@ -2,6 +2,7 @@ import pathlib
 import tempfile
 from io import BytesIO
 
+import openai
 import streamlit as st
 from llama_index import ServiceContext, SimpleDirectoryReader, VectorStoreIndex
 from llama_index.chat_engine import CondenseQuestionChatEngine
@@ -12,7 +13,7 @@ st.title("Chat with Documents")
 
 
 @st.cache_resource(show_spinner=False)
-def build_chat_engine(file: BytesIO, api_key: str) -> CondenseQuestionChatEngine:
+def build_chat_engine(file: BytesIO) -> CondenseQuestionChatEngine:
     with st.spinner("Loading and indexing the document..."):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_file_path = pathlib.Path(temp_dir) / file.name
@@ -21,7 +22,7 @@ def build_chat_engine(file: BytesIO, api_key: str) -> CondenseQuestionChatEngine
             reader = SimpleDirectoryReader(input_files=[temp_file_path])
             documents = reader.load_data()
 
-        llm = OpenAI(model="gpt-3.5-turbo", api_key=api_key)
+        llm = OpenAI(model="gpt-3.5-turbo")
         service_context = ServiceContext.from_defaults(llm=llm)
         index = VectorStoreIndex.from_documents(
             documents, service_context=service_context
@@ -50,7 +51,8 @@ uploaded_file = st.file_uploader(
 if not openai_api_key or not uploaded_file:
     st.stop()
 
-chat_engine = build_chat_engine(uploaded_file, openai_api_key)
+openai.api_key = openai_api_key
+chat_engine = build_chat_engine(uploaded_file)
 
 if "messages" not in st.session_state or st.sidebar.button("Clear message history"):
     st.session_state.messages = [
