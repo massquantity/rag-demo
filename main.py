@@ -8,12 +8,16 @@ from llama_index import ServiceContext, SimpleDirectoryReader, VectorStoreIndex
 from llama_index.chat_engine import CondenseQuestionChatEngine
 from llama_index.llms import OpenAI
 
+from sidebar import sidebar_params
+
 st.set_page_config(page_title="Chat with Documents", layout="wide", page_icon="🔥")
 st.title("Chat with Documents")
 
 
 @st.cache_resource(show_spinner=False)
-def build_chat_engine(file: BytesIO) -> CondenseQuestionChatEngine:
+def build_chat_engine(
+    file: BytesIO, temperature: float
+) -> CondenseQuestionChatEngine:  # choose another engine
     with st.spinner("Loading and indexing the document..."):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_file_path = pathlib.Path(temp_dir) / file.name
@@ -22,7 +26,7 @@ def build_chat_engine(file: BytesIO) -> CondenseQuestionChatEngine:
             reader = SimpleDirectoryReader(input_files=[temp_file_path])
             documents = reader.load_data()
 
-        llm = OpenAI(model="gpt-3.5-turbo")
+        llm = OpenAI(model="gpt-3.5-turbo", temperature=temperature)
         service_context = ServiceContext.from_defaults(llm=llm)
         index = VectorStoreIndex.from_documents(
             documents, service_context=service_context
@@ -30,18 +34,11 @@ def build_chat_engine(file: BytesIO) -> CondenseQuestionChatEngine:
         return index.as_chat_engine(chat_mode="condense_question", verbose=True)
 
 
-openai_api_key = st.sidebar.text_input(
-    "OpenAI API Key",
-    type="password",
-    placeholder="Enter your OpenAI API key",
-    help="You can get your API key from https://platform.openai.com/account/api-keys.",
-)
+def add_message(role: str, content: str):
+    st.session_state.messages.append({"role": role, "content": content})
 
-if not openai_api_key:
-    st.warning(
-        "Please enter your OpenAI API key in the sidebar. "
-        "You can get a key at https://platform.openai.com/account/api-keys."
-    )
+
+openai_api_key, temperature = sidebar_params()
 
 uploaded_file = st.file_uploader(
     "Upload a pdf, docx, or txt file",
@@ -52,7 +49,7 @@ if not openai_api_key or not uploaded_file:
     st.stop()
 
 openai.api_key = openai_api_key
-chat_engine = build_chat_engine(uploaded_file)
+chat_engine = build_chat_engine(uploaded_file, temperature)
 
 if "messages" not in st.session_state or st.sidebar.button("Clear message history"):
     st.session_state.messages = [
@@ -69,9 +66,9 @@ for message in st.session_state.messages:
 if user_query := st.chat_input("Ask questions about the document..."):
     with st.chat_message("user"):
         st.write(user_query)
-    st.session_state.messages.append({"role": "user", "content": user_query})
+    add_message("user", user_query)
 
     with st.chat_message("assistant"), st.spinner("Generating response..."):
         response = chat_engine.chat(user_query).response
         st.write(response)
-    st.session_state.messages.append({"role": "assistant", "content": response})
+    add_message("assistant", response)
