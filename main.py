@@ -8,7 +8,7 @@ from llama_index import ServiceContext, SimpleDirectoryReader, VectorStoreIndex
 from llama_index.chat_engine import CondenseQuestionChatEngine
 from llama_index.llms import OpenAI
 
-st.set_page_config(page_title="Chat with Documents", page_icon="🔥")
+st.set_page_config(page_title="Chat with Documents", layout="wide", page_icon="🔥")
 st.title("Chat with Documents")
 
 
