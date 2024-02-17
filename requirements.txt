@@ -1,5 +1,5 @@
 docx2txt
-llama-index
+llama-index == 0.10.5
 openai
 pypdf
 streamlit

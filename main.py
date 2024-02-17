@@ -4,9 +4,9 @@ from io import BytesIO
 
 import openai
 import streamlit as st
-from llama_index import ServiceContext, SimpleDirectoryReader, VectorStoreIndex
-from llama_index.chat_engine import ContextChatEngine
-from llama_index.llms import OpenAI
+from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
+from llama_index.core.chat_engine import ContextChatEngine
+from llama_index.llms.openai import OpenAI
 
 from sidebar import sidebar_params
 
@@ -15,9 +15,7 @@ st.title("Chat with Documents")
 
 
 @st.cache_resource(show_spinner=False)
-def build_chat_engine(
-    file: BytesIO, temperature: float
-) -> ContextChatEngine:
+def build_chat_engine(file: BytesIO, temperature: float) -> ContextChatEngine:
     with st.spinner("Loading and indexing the document..."):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_file_path = pathlib.Path(temp_dir) / file.name
@@ -27,11 +25,8 @@ def build_chat_engine(
             documents = reader.load_data()
 
         llm = OpenAI(model="gpt-3.5-turbo", temperature=temperature)
-        service_context = ServiceContext.from_defaults(llm=llm)
-        index = VectorStoreIndex.from_documents(
-            documents, service_context=service_context
-        )
-        return index.as_chat_engine(chat_mode="context", verbose=True)
+        index = VectorStoreIndex.from_documents(documents)
+        return index.as_chat_engine(chat_mode="context", llm=llm, verbose=True)
 
 
 def add_message(role: str, content: str):
